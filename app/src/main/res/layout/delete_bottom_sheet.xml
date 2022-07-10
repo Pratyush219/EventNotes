@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:id="@+id/bottomSheet"
+    android:gravity="center"
+    android:orientation="vertical">
+    <View
+        android:layout_width="108dp"
+        android:layout_height="8dp"
+        android:layout_margin="10dp"
+        android:background="@drawable/delete_indicator_shape"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Are you sure?"
+        android:gravity="center"
+        android:layout_marginTop="8dp"
+        android:layout_marginBottom="8dp"
+        android:textColor="@color/black"
+        android:fontFamily="@font/roboto_medium"
+        android:textSize="16sp" />
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/deny_delete"
+        android:text="No"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:fontFamily="@font/roboto_regular"
+        android:background="@drawable/no_delete"
+        android:padding="8dp"
+        android:layout_margin="8dp"/>
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/confirm_delete"
+        android:text="Yes"
+        android:gravity="center"
+        android:textSize="16sp"
+        android:fontFamily="@font/roboto_regular"
+        android:background="@drawable/yes_delete"
+        android:padding="8dp"
+        android:layout_margin="8dp"/>
+</LinearLayout>
