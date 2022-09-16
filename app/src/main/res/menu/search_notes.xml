@@ -6,4 +6,11 @@
         app:showAsAction="ifRoom"
         android:id="@+id/action_search"
         app:actionViewClass="android.widget.SearchView" />
+    <item android:title="Events"
+        android:icon="@drawable/ic_calendar"
+        app:showAsAction="ifRoom"
+        android:id="@+id/action_to_event_page" />
+    <item android:title="Logout"
+        android:id="@+id/action_logout"
+        app:showAsAction="never" />
 </menu>

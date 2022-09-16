@@ -3,7 +3,10 @@
   <component name="DesignSurface">
     <option name="filePathToZoomLevelMap">
       <map>
+        <entry key="..\:/AndroidProject/EventNotes/app/src/main/res/drawable/ic_notes.xml" value="0.167" />
+        <entry key="..\:/AndroidProject/EventNotes/app/src/main/res/layout/fragment_add_note.xml" value="0.1828125" />
         <entry key="..\:/AndroidProject/EventNotes/app/src/main/res/layout/fragment_event.xml" value="0.1828125" />
+        <entry key="..\:/AndroidProject/EventNotes/app/src/main/res/layout/fragment_sign_in.xml" value="0.1828125" />
       </map>
     </option>
   </component>

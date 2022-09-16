@@ -1,5 +1,8 @@
 package com.example.eventnotes.activity;
 
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -9,9 +12,11 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.SearchView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.NavController;
@@ -21,8 +26,14 @@ import androidx.recyclerview.widget.StaggeredGridLayoutManager;
 
 import com.example.eventnotes.R;
 import com.example.eventnotes.adapter.NotesAdapter;
-import com.example.eventnotes.model.Note;
+import com.example.eventnotes.entity.Note;
 import com.example.eventnotes.viewModel.NoteViewModel;
+import com.example.eventnotes.viewModel.UserViewModel;
+import com.google.android.gms.auth.api.signin.GoogleSignIn;
+import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
+import com.google.android.gms.common.api.Scope;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.ArrayList;
@@ -36,6 +47,13 @@ public class NotesFragment extends Fragment implements NotesAdapter.NoteCLickLis
     NotesAdapter adapter;
     TextView noFilter, highToLow, lowToHigh;
     List<Note> filteredNotes;
+    GoogleSignInOptions gso;
+    GoogleSignInClient mGoogleSignInClient;
+    UserViewModel userViewModel;
+    long loggedInUserId;
+    private Context context;
+    private static final String TAG = "NotesFragment";
+
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -43,17 +61,44 @@ public class NotesFragment extends Fragment implements NotesAdapter.NoteCLickLis
         setHasOptionsMenu(true);
     }
 
+    @Override
+    public void onAttach(@NonNull Context context) {
+        super.onAttach(context);
+        this.context = context;
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
-        viewModel = new ViewModelProvider(requireActivity()).get(NoteViewModel.class);
+        gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+                .requestScopes(new Scope("https://www.googleapis.com/auth/calendar"))
+                .requestServerAuthCode("924188463092-bd6vk8eekjsvgbamntttp6temqb92evj.apps.googleusercontent.com")
+                .requestEmail()
+                .build();
+        mGoogleSignInClient = GoogleSignIn.getClient(requireActivity(), gso);
         return inflater.inflate(R.layout.fragment_notes, container, false);
     }
 
+    @RequiresApi(api = Build.VERSION_CODES.R)
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        viewModel = new ViewModelProvider(requireActivity()).get(NoteViewModel.class);
+        SharedPreferences preferences = requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE);
+        loggedInUserId = preferences.getLong("userId", -1);
+//        if(preferences.contains("revisit")) {
+//            Toast.makeText(context, preferences.getBoolean("revisit", false) + "", Toast.LENGTH_SHORT).show();
+//        }
+        Toast.makeText(context, "Revisit = " + preferences.getBoolean("revisit", false), Toast.LENGTH_SHORT).show();
 
+        if(preferences.getInt(String.valueOf(loggedInUserId), 1) <= 1) {
+            viewModel.loadDataFromCloud(loggedInUserId);
+//            preferences.edit().putBoolean("revisit", true).apply();
+            Toast.makeText(context, "Getting data from cloud", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(context, "Getting data from local database", Toast.LENGTH_SHORT).show();
+        }
+        Toast.makeText(requireContext(), "Logged in User = " + loggedInUserId, Toast.LENGTH_SHORT).show();
         navController = Navigation.findNavController(view);
         addNoteBtn = view.findViewById(R.id.add_note);
         notesRecyclerView = view.findViewById(R.id.rv_notes);
@@ -61,6 +106,11 @@ public class NotesFragment extends Fragment implements NotesAdapter.NoteCLickLis
         highToLow = view.findViewById(R.id.filter_high_to_low);
         lowToHigh = view.findViewById(R.id.filter_low_to_high);
 
+        userViewModel = new ViewModelProvider(requireActivity()).get(UserViewModel.class);
+
+        if(loggedInUserId == -1) {
+            return;
+        }
         noFilter.setBackgroundResource(R.drawable.filter_selected_shape);
         noFilter.setOnClickListener(v -> {
             loadData(0);
@@ -82,25 +132,22 @@ public class NotesFragment extends Fragment implements NotesAdapter.NoteCLickLis
         });
         addNoteBtn.setOnClickListener(view1 -> navController.navigate(R.id.action_notesFragment_to_addNoteFragment));
         adapter = new NotesAdapter(requireActivity(), this);
-        viewModel.getAllNotes().observe(getViewLifecycleOwner(), notes -> {
-            setNoteAdapter(notes);
-            filteredNotes = notes;
-        });
+        loadData(0);
     }
 
     private void loadData(int i) {
         if (i == 0) {
-            viewModel.getAllNotes().observe(getViewLifecycleOwner(), notes -> {
+            viewModel.getNoteForUser(loggedInUserId).observe(getViewLifecycleOwner(), notes -> {
                 setNoteAdapter(notes);
                 filteredNotes = notes;
             });
         } else if (i == 1) {
-            viewModel.getPriorityHighToLow().observe(getViewLifecycleOwner(), notes -> {
+            viewModel.getPriorityHighToLow(loggedInUserId).observe(getViewLifecycleOwner(), notes -> {
                 setNoteAdapter(notes);
                 filteredNotes = notes;
             });
         } else if (i == 2) {
-            viewModel.getPriorityLowToHigh().observe(getViewLifecycleOwner(), notes -> {
+            viewModel.getPriorityLowToHigh(loggedInUserId).observe(getViewLifecycleOwner(), notes -> {
                 setNoteAdapter(notes);
                 filteredNotes = notes;
             });
@@ -115,13 +162,15 @@ public class NotesFragment extends Fragment implements NotesAdapter.NoteCLickLis
 
     @Override
     public void onNoteClick(Note note) {
+        Toast.makeText(context, "Inside onNoteClick", Toast.LENGTH_SHORT).show();
         Bundle bundle = new Bundle();
-        bundle.putInt("noteId", note.id);
+        bundle.putLong("noteId", note.id);
         bundle.putString("title", note.title);
         bundle.putString("subtitle", note.subtitle);
         bundle.putString("desc", note.desc);
         bundle.putString("date", note.date);
         bundle.putString("priority", note.priority);
+        bundle.putLong("userId", note.userId);
         navController.navigate(R.id.action_notesFragment_to_updateNoteFragment, bundle);
     }
 
@@ -143,8 +192,29 @@ public class NotesFragment extends Fragment implements NotesAdapter.NoteCLickLis
                 return false;
             }
         });
-
+        GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(requireActivity());
+        if(account == null) {
+            menu.findItem(R.id.action_logout).setVisible(false);
+        }
         super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        int id = item.getItemId();
+        if(id == R.id.action_to_event_page) {
+            navController.navigate(R.id.action_notesFragment_to_signInFragment);
+            return true;
+        }
+        else if(id == R.id.action_logout) {
+            mGoogleSignInClient.signOut()
+                    .addOnCompleteListener(requireActivity(), task -> {
+                        item.setVisible(false);
+                        Toast.makeText(requireContext(), "Logged out", Toast.LENGTH_SHORT).show();
+                        navController.navigate(R.id.action_notesFragment_to_signInFragment);
+                    });
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     private void notesFilter(String s) {

@@ -1,5 +1,6 @@
 package com.example.eventnotes.activity;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.text.format.DateFormat;
 import android.view.LayoutInflater;
@@ -14,7 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.eventnotes.R;
 import com.example.eventnotes.databinding.FragmentAddNoteBinding;
-import com.example.eventnotes.model.Note;
+import com.example.eventnotes.entity.Note;
 import com.example.eventnotes.viewModel.NoteViewModel;
 
 import java.util.Date;
@@ -67,11 +68,12 @@ public class AddNoteFragment extends Fragment {
             Toast.makeText(view.getContext(), "Note added successfully", Toast.LENGTH_SHORT).show();
             requireActivity().onBackPressed();
         });
+
     }
 
     private void addNote(String title, String subtitle, String description) {
         Date curDate = new Date();
-        CharSequence sequence = DateFormat.format("MMMM d, yyyy", curDate.getTime());
+        CharSequence sequence = DateFormat.format("yyyy-MM-dd", curDate.getTime());
 
         Note newNote = new Note();
         newNote.date = sequence.toString();
@@ -79,6 +81,14 @@ public class AddNoteFragment extends Fragment {
         newNote.subtitle = subtitle;
         newNote.desc = description;
         newNote.priority = priority;
-        viewModel.addNote(newNote);
+        newNote.userId = requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE).getLong("userId", -1);
+        Toast.makeText(requireActivity(), "Logged in: " + newNote.userId, Toast.LENGTH_SHORT).show();
+        if (newNote.userId != -1) {
+            viewModel.addNote(newNote, true);
+
+        }
+        else {
+            Toast.makeText(requireActivity(), "ERROR!", Toast.LENGTH_SHORT).show();
+        }
     }
 }

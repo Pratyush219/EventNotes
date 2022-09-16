@@ -11,16 +11,14 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.eventnotes.R;
-import com.example.eventnotes.model.Note;
-import com.example.eventnotes.R;
-import com.example.eventnotes.model.Note;
+import com.example.eventnotes.entity.Note;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHolder> {
     List<Note> notesDisplayed;
-    List<Note> allNotes;
+//    List<Note> allNotes;
 
     Context context;
     private static final String TAG = "NotesAdapter";
@@ -30,7 +28,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
     }
     public void setNotesDisplayed(List<Note> notesDisplayed) {
         this.notesDisplayed = notesDisplayed;
-        allNotes = new ArrayList<>(notesDisplayed);
+//        allNotes = new ArrayList<>(notesDisplayed);
     }
     public void searchNotes(ArrayList<Note> filteredNotes) {
         this.notesDisplayed = filteredNotes;
@@ -52,7 +50,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
     public void onBindViewHolder(@NonNull NotesViewHolder holder, int position) {
         Note curNote = notesDisplayed.get(position);
         Log.d(TAG, "onBindViewHolder: " + curNote.title + " " + curNote.subtitle);
-        holder.title.setText(curNote.title);
+        holder.title.setText(curNote.id + " " + curNote.title);
         holder.subtitle.setText(curNote.subtitle);
         holder.date.setText(curNote.date);
         int res = 0;
@@ -78,7 +76,7 @@ public class NotesAdapter extends RecyclerView.Adapter<NotesAdapter.NotesViewHol
     public class NotesViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
         public TextView title, subtitle, date;
         public View priorityView;
-        private NoteCLickListener noteListener;
+        private final NoteCLickListener noteListener;
         public NotesViewHolder(@NonNull View itemView, NoteCLickListener listener) {
             super(itemView);
             title = itemView.findViewById(R.id.tv_title);

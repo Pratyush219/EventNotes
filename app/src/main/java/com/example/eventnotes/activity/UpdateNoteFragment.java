@@ -1,5 +1,6 @@
 package com.example.eventnotes.activity;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -17,18 +18,15 @@ import androidx.lifecycle.ViewModelProvider;
 
 import com.example.eventnotes.R;
 import com.example.eventnotes.databinding.FragmentUpdateNoteBinding;
-import com.example.eventnotes.model.Note;
-import com.example.eventnotes.viewModel.NoteViewModel;
-import com.example.eventnotes.R;
-import com.example.eventnotes.databinding.FragmentUpdateNoteBinding;
-import com.example.eventnotes.model.Note;
+import com.example.eventnotes.entity.Note;
 import com.example.eventnotes.viewModel.NoteViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 
 public class UpdateNoteFragment extends Fragment {
-    int noteId;
+    long noteId;
     NoteViewModel viewModel;
     private String title, subtitle, description, date;
+    private long userId;
     private String priority = "1";
     private String initPriority;
     FragmentUpdateNoteBinding binding;
@@ -40,18 +38,10 @@ public class UpdateNoteFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        Bundle bundle = requireArguments();
-        noteId = bundle.getInt("noteId");
-        title = bundle.getString("title");
-        subtitle = bundle.getString("subtitle");
-        description = bundle.getString("desc");
-        date = bundle.getString("date");
-        initPriority = bundle.getString("priority");
-        Toast.makeText(getContext(),  "Note: " + noteId + " " + title + " " + subtitle + " " + date, Toast.LENGTH_SHORT).show();
-        viewModel = new ViewModelProvider(requireActivity()).get(NoteViewModel.class);
+
         binding = FragmentUpdateNoteBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -59,6 +49,17 @@ public class UpdateNoteFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        Bundle bundle = requireArguments();
+        Toast.makeText(requireContext(), "Inside UpdateNoteFragment", Toast.LENGTH_SHORT).show();
+        noteId = bundle.getLong("noteId");
+        title = bundle.getString("title");
+        subtitle = bundle.getString("subtitle");
+        description = bundle.getString("desc");
+        date = bundle.getString("date");
+        initPriority = bundle.getString("priority");
+        userId = requireActivity().getSharedPreferences("UserPreferences", Context.MODE_PRIVATE).getLong("userId", -1);
+        Toast.makeText(getContext(),  "Note: " + noteId + " " + title + " " + subtitle + " " + date, Toast.LENGTH_SHORT).show();
+        viewModel = new ViewModelProvider(requireActivity()).get(NoteViewModel.class);
 
         binding.etTitle.setText(title);
         binding.etSubtitle.setText(subtitle);
@@ -102,13 +103,12 @@ public class UpdateNoteFragment extends Fragment {
             title = binding.etTitle.getText().toString();
             subtitle = binding.etSubtitle.getText().toString();
             description = binding.etDescription.getText().toString();
-
-            addNote(title, subtitle, description);
+            updateNote(title, subtitle, description);
             Toast.makeText(view.getContext(), "Note updated successfully", Toast.LENGTH_SHORT).show();
             requireActivity().onBackPressed();
         });
     }
-    private void addNote(String title, String subtitle, String description) {
+    private void updateNote(String title, String subtitle, String description) {
         Note newNote = new Note();
         newNote.id = noteId;
         newNote.date = date;
@@ -116,7 +116,13 @@ public class UpdateNoteFragment extends Fragment {
         newNote.subtitle = subtitle;
         newNote.desc = description;
         newNote.priority = priority;
-        viewModel.updateNote(newNote);
+        newNote.userId = userId;
+        if (newNote.userId != -1) {
+            viewModel.updateNote(newNote);
+        }
+        else {
+            Toast.makeText(requireActivity(), "ERROR!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     @Override

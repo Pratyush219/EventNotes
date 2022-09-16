@@ -19,6 +19,8 @@ import android.widget.Toast;
 import com.example.eventnotes.R;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
+import com.google.android.gms.auth.api.signin.GoogleSignInClient;
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
 import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -28,7 +30,6 @@ import com.google.api.client.util.DateTime;
 import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventDateTime;
-import com.google.api.services.calendar.model.Events;
 
 import java.io.IOException;
 import java.security.GeneralSecurityException;
@@ -45,9 +46,9 @@ public class AddEventFragment extends Fragment {
     EditText etDate, etStartTime, etEndTime, etSummary, etDescription;
     private long startTime = 0, endTime = 0;
     private int startHour, endHour, startMinute, endMinute;
-    private Button btnCreate;
     private java.util.Calendar calendar;
     private boolean dateSet = false, startSet = false, endSet = false;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -65,7 +66,7 @@ public class AddEventFragment extends Fragment {
         etDate = view.findViewById(R.id.et_date);
         etStartTime = view.findViewById(R.id.et_start_time);
         etEndTime = view.findViewById(R.id.et_end_time);
-        btnCreate = view.findViewById(R.id.btn_create);
+        Button btnCreate = view.findViewById(R.id.btn_create);
         etStartTime.setShowSoftInputOnFocus(false);
         etEndTime.setShowSoftInputOnFocus(false);
         etDate.setShowSoftInputOnFocus(false);
@@ -74,13 +75,28 @@ public class AddEventFragment extends Fragment {
         } catch (GeneralSecurityException | IOException e) {
             e.printStackTrace();
         }
-        etDate.setOnClickListener(v -> {
+        etDate.setOnFocusChangeListener((v, hasFocus) -> {
+            if(hasFocus) {
+                showDateDialog();
+            }
+        });
+        etDate.setOnClickListener((v) -> {
             showDateDialog();
         });
-        etStartTime.setOnClickListener(v -> {
+        etStartTime.setOnFocusChangeListener((v, hasFocus) -> {
+            if(hasFocus) {
+                showTimeDialog(etStartTime, 0);
+            }
+        });
+        etStartTime.setOnClickListener((v) -> {
             showTimeDialog(etStartTime, 0);
         });
-        etEndTime.setOnClickListener(v -> {
+        etEndTime.setOnFocusChangeListener((v, hasFocus) -> {
+            if(hasFocus) {
+                showTimeDialog(etEndTime, 1);
+            }
+        });
+        etEndTime.setOnClickListener((v) -> {
             showTimeDialog(etEndTime, 1);
         });
         GoogleSignInAccount account = GoogleSignIn.getLastSignedInAccount(requireActivity());
@@ -108,37 +124,36 @@ public class AddEventFragment extends Fragment {
         ExecutorService service1 = Executors.newSingleThreadExecutor();
         btnCreate.setOnClickListener(v -> {
             if(isFilled(etSummary) && isFilled(etDescription) && isFilled(etDate) && isFilled(etStartTime) && isFilled(etEndTime)) {
-                final Event[] event = {new Event()
-                        .setSummary(etSummary.getText().toString())
-                        .setDescription(etDescription.getText().toString())};
+                if(startTime < endTime) {
+                    final Event[] event = {new Event()
+                            .setSummary(etSummary.getText().toString())
+                            .setDescription(etDescription.getText().toString())};
 
-                DateTime startDateTime = new DateTime(startTime);
-                EventDateTime start = new EventDateTime()
-                        .setDateTime(startDateTime)
-                        .setTimeZone("Asia/Kolkata");
-                event[0].setStart(start);
+                    DateTime startDateTime = new DateTime(startTime);
+                    EventDateTime start = new EventDateTime()
+                            .setDateTime(startDateTime)
+                            .setTimeZone("Asia/Kolkata");
+                    event[0].setStart(start);
 
-                DateTime endDateTime = new DateTime(endTime);
-                EventDateTime end = new EventDateTime()
-                        .setDateTime(endDateTime)
-                        .setTimeZone("Asia/Kolkata");
-                event[0].setEnd(end);
-                String calendarId = account.getEmail();
-                service1.execute(() -> {
-                    try {
-                        event[0] = service.events().insert(calendarId, event[0]).execute();
-                        Log.w(TAG, "onViewCreated: Event insertion=success " + event[0].getHtmlLink());
-                        requireActivity().runOnUiThread(new Runnable() {
-                            @Override
-                            public void run() {
-                                requireActivity().onBackPressed();
-                            }
-                        });
-                    } catch (IOException e) {
-                        Log.w(TAG, "onViewCreated: Event insertion=failed");
-                        e.printStackTrace();
-                    }
-                });
+                    DateTime endDateTime = new DateTime(endTime);
+                    EventDateTime end = new EventDateTime()
+                            .setDateTime(endDateTime)
+                            .setTimeZone("Asia/Kolkata");
+                    event[0].setEnd(end);
+                    String calendarId = account.getEmail();
+                    service1.execute(() -> {
+                        try {
+                            event[0] = service.events().insert(calendarId, event[0]).execute();
+                            Log.w(TAG, "onViewCreated: Event insertion=success " + event[0].getHtmlLink());
+                            requireActivity().runOnUiThread(() -> requireActivity().onBackPressed());
+                        } catch (IOException e) {
+                            Log.w(TAG, "onViewCreated: Event insertion=failed");
+                            e.printStackTrace();
+                        }
+                    });   
+                } else {
+                    Toast.makeText(requireActivity(), "Start time cannot be greater than end time", Toast.LENGTH_SHORT).show();
+                }
             } else {
                 Toast.makeText(requireContext(), "Please fill all the details", Toast.LENGTH_SHORT).show();
             }

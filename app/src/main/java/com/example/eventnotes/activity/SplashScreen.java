@@ -12,23 +12,29 @@ import com.example.eventnotes.R;
 import java.util.Objects;
 
 public class SplashScreen extends AppCompatActivity {
-
+    private Handler handler;
+    private Runnable r;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_splash_screen);
+        handler = new Handler();
         Objects.requireNonNull(getSupportActionBar()).hide();
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                Intent intent = new Intent(SplashScreen.this, MainActivity.class);
-                try {
-                    startActivity(intent);
-                    finish();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
+        r = () -> {
+            Intent intent = new Intent(SplashScreen.this, MainActivity.class);
+            try {
+                startActivity(intent);
+                finish();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        }, 2000);
+        };
+        handler.postDelayed(r, 2000);
+    }
+
+    @Override
+    public void onBackPressed() {
+        super.onBackPressed();
+        handler.removeCallbacks(r);
     }
 }
